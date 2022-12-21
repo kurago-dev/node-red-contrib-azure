@@ -35,5 +35,12 @@
     "nodes": {
       "Azure IotHub device": "dist/azure-iothub-device.js"
     }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kurago-dev/node-red-contrib-azure.git"
+  },
+  "bugs": {
+    "url": "https://github.com/kurago-dev/node-red-contrib-azure/issues"
   }
 }
