@@ -1,0 +1,51 @@
+<script type="text/javascript">
+    RED.nodes.registerType("Azure IotHub device", {
+        category: "network",
+        color: "#fff",
+        defaults: {
+            connectionString: {
+                value: "",
+                required: true
+            },
+            protocol: {
+                value: "mqtt",
+                required: true,
+            }
+        },
+        inputs: 1,
+        output: 0,
+        align: "right",
+        icon: "iot-hub.png",
+        label: function() {
+            return "Azure IotHub device"
+        },
+        oneditprepare: function() {
+            $("#node-input-protocol").typedInput({
+                types: [{
+                    value: "protocol",
+                    options: [
+                        { value: "mqtt", label: "MQTT" },
+                        { value: "mqtt-ws", label: "MQTT (websockets)" },
+                        { value: "amqp", label: "AMQP" },
+                        { value: "amqp-ws", label: "AMQP (websockets)" }
+                    ]
+                }]
+            })
+        }
+    })
+</script>
+
+<script type="text/html" data-template-name="Azure IotHub device">
+    <div class="form-row">
+        <label for="node-input-connectionString"><i class="fa fa-plug"></i> Connection string</label>
+        <input type="text" id="node-input-connectionString" />
+    </div>
+    <div class="form-row">
+        <label for="node-input-connectionString"><i class="fa fa-globe"></i> Protocol</label>
+        <input type="text" id="node-input-protocol" />
+    </div>
+</script>
+
+<script type="text/html" data-help-name="Azure IotHub device">
+    This is some generic help that will be written later on
+</script>
