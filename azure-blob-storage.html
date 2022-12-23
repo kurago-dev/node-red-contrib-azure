@@ -1,0 +1,91 @@
+<script type="text/javascript">
+    RED.nodes.registerType("Azure Blob storage", {
+        category: "network",
+        color: "#00a4ef",
+        defaults: {
+            storageAccount: {
+                value: "",
+                required: true
+            },
+            containerName: {
+                value: "",
+                required: true,
+            },
+            fileName: {
+                value: "",
+                required: false,
+            },
+            sasQueryString: {
+                value: "",
+                required: true
+            },
+            proxy: {
+                type: "http proxy",
+                required: false,
+                label: "Proxy Configuration"
+            }
+        },
+        inputs: 1,
+        output: 0,
+        align: "right",
+        icon: "blob-storage.png",
+        label: function () {
+            return "Azure Blob storage"
+        },
+        oneditprepare: function () {
+            // Proxies
+            function updateProxyOptions() {
+                if ($("#node-input-useProxy").is(":checked")) {
+                    $("#node-input-useProxy-row").show();
+                } else {
+                    $("#node-input-useProxy-row").hide();
+                }
+                RED.tray.resize();
+            }
+            if (node.proxy) {
+                $("#node-input-useProxy").prop("checked", true);
+            } else {
+                $("#node-input-useProxy").prop("checked", false);
+            }
+            updateProxyOptions();
+            $("#node-input-useProxy").on("click", function () {
+                updateProxyOptions();
+            });
+        },
+        oneditsave: function () {
+            if (!$("#node-input-useProxy").is(":checked")) {
+                $("#node-input-proxy").val("_ADD_");
+            }
+        }
+    })
+</script>
+
+<script type="text/html" data-template-name="Azure Blob storage">
+    <div class="form-row">
+        <label for="node-input-storageAccount"><i class="fa fa-server"></i> Account</label>
+        <input type="text" id="node-input-storageAccount" placeholder="Azure Storage Account"/>
+    </div>
+    <div class="form-row">
+        <label for="node-input-containerName"><i class="fa fa-archive"></i> Blob</label>
+        <input type="text" id="node-input-containerName" placeholder="blob_name/folder"/>
+    </div>
+    <div class="form-row">
+        <label for="node-input-fileName"><i class="fa fa-file"></i> Filename</label>
+        <input type="text" id="node-input-fileName" placeholder="file.json"/>
+    </div>
+    <div class="form-row">
+        <label for="node-input-sasQueryString"><i class="fa fa-key"></i> SAS QString</label>
+        <input type="password" id="node-input-sasQueryString" placeholder="?sv=1970-01-01..."/>
+    </div>
+    <div class="form-row">
+        <input type="checkbox" id="node-input-useProxy" style="display: inline-block; width: auto; vertical-align: top;">
+        <label for="node-input-useProxy" style="width: auto;"><span>Use Proxy</span></label>
+        <div id="node-input-useProxy-row" class="hide">
+            <label style="width: auto; margin-left: 20px; margin-right: 10px;" for="node-input-proxy"><i class="fa fa-globe"></i> <span>Proxy Configuration</span></label><input type="text" style="width: 270px" id="node-input-proxy">
+        </div>
+    </div>
+</script>
+
+<script type="text/html" data-help-name="Azure Blob storage">
+    Node to upload incoming JSON messages to Azure Blob storage
+</script>

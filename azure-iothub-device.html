@@ -1,7 +1,7 @@
 <script type="text/javascript">
     RED.nodes.registerType("Azure IotHub device", {
         category: "network",
-        color: "#fff",
+        color: "#00a4ef",
         defaults: {
             connectionString: {
                 value: "",
@@ -23,10 +23,10 @@
         output: 0,
         align: "right",
         icon: "iot-hub.png",
-        label: function() {
+        label: function () {
             return "Azure IotHub device"
         },
-        oneditprepare: function() {
+        oneditprepare: function () {
             $("#node-input-protocol").typedInput({
                 types: [{
                     value: "protocol",
