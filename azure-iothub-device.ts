@@ -1,16 +1,19 @@
-import * as nodered from "node-red";
-import { Client } from "azure-iot-device";
 import { Message } from "azure-iot-common";
+import { Client, DeviceClientOptions, MqttTransportOptions } from "azure-iot-device";
+import { HttpsProxyAgent, HttpsProxyAgentOptions } from "hpagent";
+import { URL } from "url";
+import * as nodered from "node-red";
 
 import {
   AzureIotHubDeviceNodeState,
   AzureIotHubDeviceConfig,
-  Protocol,
   ProtocolModule,
 } from "./azure-iothub-device-def";
 
-const getProtocolModule = async (protocol: Protocol): Promise<ProtocolModule> => {
-  switch (protocol) {
+const getProtocolModule = async function (
+  this: AzureIotHubDeviceNodeState
+): Promise<ProtocolModule> {
+  switch (this.config.protocol) {
     case "mqtt":
       const { Mqtt } = await import("azure-iot-device-mqtt");
       return Mqtt;
@@ -28,12 +31,53 @@ const getProtocolModule = async (protocol: Protocol): Promise<ProtocolModule> =>
   }
 };
 
-const setup = async function (
-  this: AzureIotHubDeviceNodeState,
-  connectionString: string,
-  Protocol: ProtocolModule
-) {
+const getProxyOptions = (config: AzureIotHubDeviceConfig): HttpsProxyAgentOptions | {} => {
+  if (!config.useProxy) {
+    return {};
+  }
+  const proxy = new URL(config.proxy.url);
+  if (config.proxy.noproxy.includes(proxy.hostname)) {
+    return {};
+  }
+  return {
+    proxy,
+    maxFreeSockets: 256,
+    maxSockets: 256,
+    keepAlive: true,
+  };
+};
+
+const getClientOptions = async function (
+  this: AzureIotHubDeviceNodeState
+): Promise<DeviceClientOptions> {
+  const proxyConfig = getProxyOptions(this.config);
+  switch (this.config.protocol) {
+    case "mqtt-ws":
+      return {
+        mqtt: {
+          ...(Object.keys(proxyConfig).length > 0 && {
+            webSocketAgent: new HttpsProxyAgent(proxyConfig as HttpsProxyAgentOptions),
+          }),
+        },
+      };
+    case "amqp-ws":
+      return {
+        amqp: {
+          ...(Object.keys(proxyConfig).length > 0 && {
+            webSocketAgent: new HttpsProxyAgent(proxyConfig as HttpsProxyAgentOptions),
+          }),
+        },
+      };
+    default:
+      return {};
+  }
+};
+
+const setup = async function (this: AzureIotHubDeviceNodeState) {
+  const { connectionString } = this.config;
+  const Protocol = await this.getProtocolModule();
   this.client = Client.fromConnectionString(connectionString, Protocol);
+  this.client.setOptions(await this.getClientOptions());
   this.on("input", async (msg, send, done) => {
     if (!!msg.payload) {
       await this.sendMessage(msg.payload! as string);
@@ -71,11 +115,15 @@ module.exports = (RED: nodered.NodeAPI): void => {
     config: AzureIotHubDeviceConfig
   ) {
     RED.nodes.createNode(this, config);
-    this.setup = setup;
+    this.config = config;
+
+    this.getProtocolModule = getProtocolModule;
+    this.getClientOptions = getClientOptions;
     this.sendMessage = sendMessage;
 
-    const { connectionString, protocol } = config;
-    getProtocolModule(protocol).then((Protocol) => this.setup(connectionString, Protocol));
+    this.setup = setup;
+
+    this.setup();
   };
   RED.nodes.registerType("Azure IotHub device", AzureIotHubDevice);
 };

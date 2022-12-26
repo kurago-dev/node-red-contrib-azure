@@ -1,4 +1,4 @@
-import { Client } from "azure-iot-device";
+import { Client, DeviceClientOptions } from "azure-iot-device";
 import * as nodered from "node-red";
 
 export type Protocol = "mqtt" | "mqtt-ws" | "amqp" | "amqp-ws";
@@ -10,13 +10,29 @@ export type ProtocolModule = Mqtt | Amqp;
 
 export interface AzureIotHubDeviceNodeState extends nodered.Node {
   client: Client;
+  config: AzureIotHubDeviceConfig;
 
-  setup: (connectionString: string, Protocol: ProtocolModule) => Promise<void>;
+  setup: () => Promise<void>;
+  getProtocolModule: () => Promise<ProtocolModule>;
+  getClientOptions: () => Promise<DeviceClientOptions>;
   sendMessage: (payload: string) => Promise<void>;
+}
+
+export interface ProxyNode extends nodered.Node {
+  url: string;
+  noproxy: string[];
+  credentials:
+    | {
+        username?: string;
+        password?: string;
+      }
+    | undefined;
 }
 
 export interface AzureIotHubDeviceConfig extends nodered.NodeDef {
   // deviceId: string;
   connectionString: string;
   protocol: Protocol;
+  useProxy: boolean;
+  proxy: ProxyNode;
 }
