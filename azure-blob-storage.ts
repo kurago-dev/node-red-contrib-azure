@@ -73,7 +73,7 @@ const uploadJSON = async function (
   this: AzureBlobStorageNodeState,
   blobUrl: string,
   payload: string,
-  clientOptions: StoragePipelineOptions
+  clientOptions: StoragePipelineOptions | {}
 ) {
   var client = new BlockBlobClient(
     blobUrl,
