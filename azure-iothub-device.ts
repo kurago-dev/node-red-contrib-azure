@@ -44,7 +44,7 @@ const getProxyOptions = (
     return {};
   }
   return {
-    proxyUrl,
+    proxy: proxyUrl,
     maxFreeSockets: 256,
     maxSockets: 256,
     keepAlive: true,
@@ -83,12 +83,13 @@ const setup = async function (this: AzureIotHubDeviceNodeState) {
   this.client = Client.fromConnectionString(connectionString, Protocol);
   this.client.setOptions(await this.getClientOptions());
   this.on("input", async (msg, send, done) => {
-    if (!!msg.payload) {
-      try {
+    if (msg.payload !== undefined) {
+      if (msg.payload! instanceof String) {
         await this.sendMessage(msg.payload! as string);
-        this.log(`Message with content ${msg.payload!} was successfully sent`);
-      } catch (e) {
-        this.error(`Message with content ${msg.payload} could not be sent: ${e}`);
+      } else if (msg.payload instanceof Number || msg.payload instanceof Boolean) {
+        await this.sendMessage(`${msg.payload}`);
+      } else {
+        await this.sendMessage(JSON.stringify(msg.payload!));
       }
     }
     if (!!done) {
