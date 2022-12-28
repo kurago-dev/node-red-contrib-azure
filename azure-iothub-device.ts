@@ -80,7 +80,12 @@ const setup = async function (this: AzureIotHubDeviceNodeState) {
   this.client.setOptions(await this.getClientOptions());
   this.on("input", async (msg, send, done) => {
     if (!!msg.payload) {
-      await this.sendMessage(msg.payload! as string);
+      try {
+        await this.sendMessage(msg.payload! as string);
+        this.log(`Message with content ${msg.payload!} was successfully sent`);
+      } catch (e) {
+        this.error(`Message with content ${msg.payload} could not be sent: ${e}`);
+      }
     }
     if (!!done) {
       done();
@@ -92,7 +97,7 @@ const setup = async function (this: AzureIotHubDeviceNodeState) {
       await this.client.close();
       this.log("The connection to the device was closed successfully");
     } catch (e) {
-      this.error("An error occurred when closing the connection to the device");
+      this.error(`An error occurred when closing the connection to the device: ${e}`);
     } finally {
       done();
     }
