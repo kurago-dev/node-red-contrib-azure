@@ -11,6 +11,7 @@ export type ProtocolModule = Mqtt | Amqp;
 export interface AzureIotHubDeviceNodeState extends nodered.Node {
   client: Client;
   config: AzureIotHubDeviceConfig;
+  proxy?: ProxyNode;
 
   setup: () => Promise<void>;
   getProtocolModule: () => Promise<ProtocolModule>;
@@ -34,5 +35,5 @@ export interface AzureIotHubDeviceConfig extends nodered.NodeDef {
   connectionString: string;
   protocol: Protocol;
   useProxy: boolean;
-  proxy: ProxyNode;
+  proxy: string;
 }

@@ -1,5 +1,5 @@
 import { Message } from "azure-iot-common";
-import { Client, DeviceClientOptions, MqttTransportOptions } from "azure-iot-device";
+import { Client, DeviceClientOptions } from "azure-iot-device";
 import { HttpsProxyAgent, HttpsProxyAgentOptions } from "hpagent";
 import { URL } from "url";
 import * as nodered from "node-red";
@@ -8,6 +8,7 @@ import {
   AzureIotHubDeviceNodeState,
   AzureIotHubDeviceConfig,
   ProtocolModule,
+  ProxyNode,
 } from "./azure-iothub-device-def";
 
 const getProtocolModule = async function (
@@ -31,12 +32,15 @@ const getProtocolModule = async function (
   }
 };
 
-const getProxyOptions = (config: AzureIotHubDeviceConfig): HttpsProxyAgentOptions | {} => {
+const getProxyOptions = (
+  config: AzureIotHubDeviceConfig,
+  proxy?: ProxyNode
+): HttpsProxyAgentOptions | {} => {
   if (!config.useProxy) {
     return {};
   }
-  const proxy = new URL(config.proxy.url);
-  if (config.proxy.noproxy.includes(proxy.hostname)) {
+  const proxyUrl = new URL(proxy.url);
+  if (proxy.noproxy.includes(proxyUrl.hostname)) {
     return {};
   }
   return {
@@ -50,7 +54,7 @@ const getProxyOptions = (config: AzureIotHubDeviceConfig): HttpsProxyAgentOption
 const getClientOptions = async function (
   this: AzureIotHubDeviceNodeState
 ): Promise<DeviceClientOptions> {
-  const proxyConfig = getProxyOptions(this.config);
+  const proxyConfig = getProxyOptions(this.config, this.proxy);
   switch (this.config.protocol) {
     case "mqtt-ws":
       return {
@@ -121,6 +125,9 @@ module.exports = (RED: nodered.NodeAPI): void => {
   ) {
     RED.nodes.createNode(this, config);
     this.config = config;
+    if (config.useProxy) {
+      this.proxy = RED.nodes.getNode(config.proxy) as ProxyNode;
+    }
 
     this.getProtocolModule = getProtocolModule;
     this.getClientOptions = getClientOptions;
