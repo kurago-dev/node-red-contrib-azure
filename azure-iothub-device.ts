@@ -44,7 +44,7 @@ const getProxyOptions = (
     return {};
   }
   return {
-    proxy,
+    proxyUrl,
     maxFreeSockets: 256,
     maxSockets: 256,
     keepAlive: true,
