@@ -19,6 +19,9 @@
                 value: "",
                 required: true
             },
+            useProxy: {
+                value: false
+            },
             proxy: {
                 type: "http proxy",
                 required: false,
@@ -42,7 +45,7 @@
                 }
                 RED.tray.resize();
             }
-            if (node.proxy) {
+            if (this.proxy) {
                 $("#node-input-useProxy").prop("checked", true);
             } else {
                 $("#node-input-useProxy").prop("checked", false);
@@ -51,11 +54,6 @@
             $("#node-input-useProxy").on("click", function () {
                 updateProxyOptions();
             });
-        },
-        oneditsave: function () {
-            if (!$("#node-input-useProxy").is(":checked")) {
-                $("#node-input-proxy").val("_ADD_");
-            }
         }
     })
 </script>
@@ -79,9 +77,12 @@
     </div>
     <div class="form-row">
         <input type="checkbox" id="node-input-useProxy" style="display: inline-block; width: auto; vertical-align: top;">
-        <label for="node-input-useProxy" style="width: auto;"><span>Use Proxy</span></label>
-        <div id="node-input-useProxy-row" class="hide">
-            <label style="width: auto; margin-left: 20px; margin-right: 10px;" for="node-input-proxy"><i class="fa fa-globe"></i> <span>Proxy Configuration</span></label><input type="text" style="width: 270px" id="node-input-proxy">
+        <label for="node-input-useProxy"><span>Use Proxy</span></label>
+    </div>
+    <div class="form-row">
+        <div id="node-input-useProxy-row" class="hide" style="margin-left: 20px;">
+            <label for="node-input-proxy"><i class="fa fa-globe"></i> <span>Proxy Configuration</span></label>
+            <input type="text" id="node-input-proxy" />
         </div>
     </div>
 </script>

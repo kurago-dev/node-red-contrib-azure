@@ -1,10 +1,15 @@
 import * as nodered from "node-red";
-import { AnonymousCredential, BlockBlobClient } from "@azure/storage-blob";
+import {
+  AnonymousCredential,
+  BlockBlobClient,
+  StoragePipelineOptions,
+} from "@azure/storage-blob";
 
 import {
   AzureBlobStorageNodeState,
   AzureBlobStorageConfig,
   MessageWithFilename,
+  ProxyNode,
 } from "./azure-blob-storage-def";
 
 const getBlobUrl = async (
@@ -16,19 +21,34 @@ const getBlobUrl = async (
   return `https://${storageAccount}.blob.core.windows.net/${containerName}/${fileName}${sasQueryString}`;
 };
 
-const setup = async function (
-  this: AzureBlobStorageNodeState,
-  storageAccount: string,
-  containerName: string,
-  configFileName: string,
-  sasQueryString: string
-) {
+const getProxyOptions = (
+  config: AzureBlobStorageConfig,
+  proxy?: ProxyNode
+): StoragePipelineOptions | {} => {
+  if (!config.useProxy) {
+    return {};
+  }
+  const proxyUrl = new URL(proxy.url);
+  if (proxy.noproxy.includes(proxyUrl.hostname)) {
+    return {};
+  }
+  return {
+    proxyOptions: proxyUrl,
+  };
+};
+
+const setup = async function (this: AzureBlobStorageNodeState) {
+  const { storageAccount, containerName, fileName, sasQueryString } =
+    this.config;
+
+  const clientOptions = getProxyOptions(this.config, this.proxy);
   var blobFileName = `${new Date().toISOString()}.json`;
+
   this.on("input", async (msg: MessageWithFilename, send, done) => {
     if (!!msg.filename) {
       blobFileName = msg.filename;
-    } else if (!!configFileName && configFileName != "") {
-      blobFileName = configFileName;
+    } else if (!!fileName && fileName != "") {
+      blobFileName = fileName;
     }
     if (!!msg.payload) {
       var blobUrl = await getBlobUrl(
@@ -37,7 +57,11 @@ const setup = async function (
         blobFileName,
         sasQueryString
       );
-      await this.uploadJSON(blobUrl, JSON.stringify(msg.payload));
+      await this.uploadJSON(
+        blobUrl,
+        JSON.stringify(msg.payload),
+        clientOptions
+      );
     }
     if (!!done) {
       done();
@@ -48,11 +72,14 @@ const setup = async function (
 const uploadJSON = async function (
   this: AzureBlobStorageNodeState,
   blobUrl: string,
-  payload: string
+  payload: string,
+  clientOptions: StoragePipelineOptions
 ) {
-  var client = new BlockBlobClient(blobUrl, new AnonymousCredential(), {
-    proxyOptions: { host: "", port: 123 },
-  });
+  var client = new BlockBlobClient(
+    blobUrl,
+    new AnonymousCredential(),
+    clientOptions
+  );
   try {
     await client.upload(payload, payload.length);
     this.log(`JSON sent successfully with payload size: ${payload.length}`);
@@ -67,6 +94,12 @@ module.exports = (RED: nodered.NodeAPI): void => {
     config: AzureBlobStorageConfig
   ) {
     RED.nodes.createNode(this, config);
+
+    this.config = config;
+    if (config.useProxy) {
+      this.proxy = RED.nodes.getNode(config.proxy) as ProxyNode;
+    }
+
     this.setup = setup;
     this.uploadJSON = uploadJSON;
 
