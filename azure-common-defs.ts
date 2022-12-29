@@ -19,3 +19,17 @@ export interface AzureNodeConfigWithProxy extends nodered.NodeDef {
   useProxy: boolean;
   proxy: string;
 }
+
+export const getProxyUrl = (
+  config: AzureNodeConfigWithProxy,
+  proxy?: ProxyNode
+): URL | {} => {
+  if (!config.useProxy) {
+    return {};
+  }
+  const proxyUrl = new URL(proxy.url);
+  if (proxy.noproxy.includes(proxyUrl.hostname)) {
+    return {};
+  }
+  return proxyUrl;
+};

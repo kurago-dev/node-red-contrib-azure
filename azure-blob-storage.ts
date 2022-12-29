@@ -5,7 +5,7 @@ import {
   StoragePipelineOptions,
 } from "@azure/storage-blob";
 
-import { ProxyNode } from "./azure-common-defs";
+import { getProxyUrl, ProxyNode } from "./azure-common-defs";
 
 import {
   AzureBlobStorageNodeState,
@@ -26,16 +26,12 @@ const getProxyOptions = (
   config: AzureBlobStorageConfig,
   proxy?: ProxyNode
 ): StoragePipelineOptions | {} => {
-  if (!config.useProxy) {
-    return {};
-  }
-  const proxyUrl = new URL(proxy.url);
-  if (proxy.noproxy.includes(proxyUrl.hostname)) {
-    return {};
-  }
-  return {
-    proxyOptions: proxyUrl,
-  };
+  const proxyUrl = getProxyUrl(config, proxy);
+  return proxyUrl instanceof URL
+    ? {
+        proxyOptions: proxyUrl,
+      }
+    : {};
 };
 
 const setup = async function (this: AzureBlobStorageNodeState) {

@@ -1,7 +1,11 @@
 import { Message } from "azure-iot-common";
 import { Client, DeviceClientOptions } from "azure-iot-device";
-import { ProxyNode } from "./azure-common-defs";
-import { HttpsProxyAgent, HttpsProxyAgentOptions } from "hpagent";
+import { getProxyUrl, ProxyNode } from "./azure-common-defs";
+import {
+  HttpProxyAgent,
+  HttpsProxyAgent,
+  HttpsProxyAgentOptions,
+} from "hpagent";
 import { URL } from "url";
 import * as nodered from "node-red";
 
@@ -10,6 +14,7 @@ import {
   AzureIotHubDeviceConfig,
   ProtocolModule,
 } from "./azure-iothub-device-def";
+import { type } from "os";
 
 const getProtocolModule = async function (
   this: AzureIotHubDeviceNodeState
@@ -36,19 +41,15 @@ const getProxyOptions = (
   config: AzureIotHubDeviceConfig,
   proxy?: ProxyNode
 ): HttpsProxyAgentOptions | {} => {
-  if (!config.useProxy) {
-    return {};
-  }
-  const proxyUrl = new URL(proxy.url);
-  if (proxy.noproxy.includes(proxyUrl.hostname)) {
-    return {};
-  }
-  return {
-    proxy: proxyUrl,
-    maxFreeSockets: 256,
-    maxSockets: 256,
-    keepAlive: true,
-  };
+  const proxyUrl = getProxyUrl(config, proxy);
+  return proxyUrl instanceof URL
+    ? {
+        proxy: proxyUrl,
+        maxFreeSockets: 256,
+        maxSockets: 256,
+        keepAlive: true,
+      }
+    : {};
 };
 
 const getClientOptions = async function (
