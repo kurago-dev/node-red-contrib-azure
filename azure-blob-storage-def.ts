@@ -3,7 +3,7 @@ import {
   AzureNodeConfigWithProxy,
   AzureNodeStateWithProxy,
 } from "./azure-common-defs";
-import * as nodered from "node-red";
+import { NodeMessageInFlow } from "node-red";
 
 export interface AzureBlobStorageNodeState extends AzureNodeStateWithProxy {
   client: BlockBlobClient;
