@@ -5,11 +5,12 @@ import {
   StoragePipelineOptions,
 } from "@azure/storage-blob";
 
+import { ProxyNode } from "./azure-common-defs";
+
 import {
   AzureBlobStorageNodeState,
   AzureBlobStorageConfig,
   MessageWithFilename,
-  ProxyNode,
 } from "./azure-blob-storage-def";
 
 const getBlobUrl = async (

@@ -1,10 +1,13 @@
 import { BlockBlobClient, StoragePipelineOptions } from "@azure/storage-blob";
+import {
+  AzureNodeConfigWithProxy,
+  AzureNodeStateWithProxy,
+} from "./azure-common-defs";
 import * as nodered from "node-red";
 
-export interface AzureBlobStorageNodeState extends nodered.Node {
+export interface AzureBlobStorageNodeState extends AzureNodeStateWithProxy {
   client: BlockBlobClient;
   config: AzureBlobStorageConfig;
-  proxy?: ProxyNode;
 
   setup: (
     storageAccount: string,
@@ -19,24 +22,11 @@ export interface AzureBlobStorageNodeState extends nodered.Node {
   ) => Promise<void>;
 }
 
-export interface ProxyNode extends nodered.Node {
-  url: string;
-  noproxy: string[];
-  credentials:
-    | {
-        username?: string;
-        password?: string;
-      }
-    | undefined;
-}
-
-export interface AzureBlobStorageConfig extends nodered.NodeDef {
+export interface AzureBlobStorageConfig extends AzureNodeConfigWithProxy {
   storageAccount: string;
   containerName: string;
   fileName: string;
   sasQueryString: string;
-  useProxy: boolean;
-  proxy: string;
 }
 
 export interface MessageWithFilename extends nodered.NodeMessageInFlow {
