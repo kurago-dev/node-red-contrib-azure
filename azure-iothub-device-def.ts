@@ -1,5 +1,8 @@
 import { Client, DeviceClientOptions } from "azure-iot-device";
-import * as nodered from "node-red";
+import {
+  AzureNodeConfigWithProxy,
+  AzureNodeStateWithProxy,
+} from "./azure-common-defs";
 
 export type Protocol = "mqtt" | "mqtt-ws" | "amqp" | "amqp-ws";
 
@@ -8,10 +11,9 @@ type Mqtt = PropType<typeof import("azure-iot-device-mqtt"), "Mqtt">;
 type Amqp = PropType<typeof import("azure-iot-device-amqp"), "Amqp">;
 export type ProtocolModule = Mqtt | Amqp;
 
-export interface AzureIotHubDeviceNodeState extends nodered.Node {
+export interface AzureIotHubDeviceNodeState extends AzureNodeStateWithProxy {
   client: Client;
   config: AzureIotHubDeviceConfig;
-  proxy?: ProxyNode;
 
   setup: () => Promise<void>;
   getProtocolModule: () => Promise<ProtocolModule>;
@@ -19,21 +21,7 @@ export interface AzureIotHubDeviceNodeState extends nodered.Node {
   sendMessage: (payload: string) => Promise<void>;
 }
 
-export interface ProxyNode extends nodered.Node {
-  url: string;
-  noproxy: string[];
-  credentials:
-    | {
-        username?: string;
-        password?: string;
-      }
-    | undefined;
-}
-
-export interface AzureIotHubDeviceConfig extends nodered.NodeDef {
-  // deviceId: string;
+export interface AzureIotHubDeviceConfig extends AzureNodeConfigWithProxy {
   connectionString: string;
   protocol: Protocol;
-  useProxy: boolean;
-  proxy: string;
 }

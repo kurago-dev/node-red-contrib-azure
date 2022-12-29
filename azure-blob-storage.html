@@ -1,42 +1,40 @@
 <script type="text/javascript">
-    RED.nodes.registerType("Azure IotHub device", {
+    RED.nodes.registerType("Azure Blob storage", {
         category: "network",
         color: "#00a4ef",
         defaults: {
-            connectionString: {
+            storageAccount: {
                 value: "",
                 required: true
             },
-            protocol: {
-                value: "mqtt",
+            containerName: {
+                value: "",
                 required: true,
+            },
+            fileName: {
+                value: "",
+                required: false,
+            },
+            sasQueryString: {
+                value: "",
+                required: true
             },
             useProxy: {
                 value: false
             },
             proxy: {
                 type: "http proxy",
-                required: false
+                required: false,
+                label: "Proxy Configuration"
             }
         },
         inputs: 1,
         output: 0,
         align: "right",
-        icon: "iot-hub.png",
-        label: "Azure IotHub device",
+        icon: "blob-storage.png",
+        label: "Azure Blob storage",
         oneditprepare: function () {
-            $("#node-input-protocol").typedInput({
-                types: [{
-                    value: "protocol",
-                    options: [
-                        { value: "mqtt", label: "MQTT" },
-                        { value: "mqtt-ws", label: "MQTT (websockets)" },
-                        { value: "amqp", label: "AMQP" },
-                        { value: "amqp-ws", label: "AMQP (websockets)" }
-                    ]
-                }]
-            })
-
+            // Proxies
             function updateProxyOptions() {
                 if ($("#node-input-useProxy").is(":checked")) {
                     $("#node-input-useProxy-row").show();
@@ -45,7 +43,6 @@
                 }
                 RED.tray.resize();
             }
-
             if (this.proxy) {
                 $("#node-input-useProxy").prop("checked", true);
             } else {
@@ -59,14 +56,22 @@
     })
 </script>
 
-<script type="text/html" data-template-name="Azure IotHub device">
+<script type="text/html" data-template-name="Azure Blob storage">
     <div class="form-row">
-        <label for="node-input-connectionString"><i class="fa fa-plug"></i> Connection string</label>
-        <input type="password" id="node-input-connectionString" />
+        <label for="node-input-storageAccount"><i class="fa fa-server"></i> Account</label>
+        <input type="text" id="node-input-storageAccount" placeholder="Azure Storage Account"/>
     </div>
     <div class="form-row">
-        <label for="node-input-protocol"><i class="fa fa-globe"></i> Protocol</label>
-        <input type="text" id="node-input-protocol" />
+        <label for="node-input-containerName"><i class="fa fa-archive"></i> Blob</label>
+        <input type="text" id="node-input-containerName" placeholder="blob_name/folder"/>
+    </div>
+    <div class="form-row">
+        <label for="node-input-fileName"><i class="fa fa-file"></i> Filename</label>
+        <input type="text" id="node-input-fileName" placeholder="file.json"/>
+    </div>
+    <div class="form-row">
+        <label for="node-input-sasQueryString"><i class="fa fa-key"></i> SAS QString</label>
+        <input type="password" id="node-input-sasQueryString" placeholder="?sv=1970-01-01..."/>
     </div>
     <div class="form-row">
         <input type="checkbox" id="node-input-useProxy" style="display: inline-block; width: auto; vertical-align: top;">
@@ -80,6 +85,6 @@
     </div>
 </script>
 
-<script type="text/html" data-help-name="Azure IotHub device">
-    This is some generic help that will be written later on
+<script type="text/html" data-help-name="Azure Blob storage">
+    Node to upload incoming JSON messages to Azure Blob storage
 </script>

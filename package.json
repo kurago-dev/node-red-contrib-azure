@@ -1,11 +1,12 @@
 {
   "name": "@kurago-dev/node-red-contrib-azure",
   "version": "1.0.0",
-  "description": "Node RED node for Azure IotHub",
+  "description": "Node RED nodes for Azure",
   "keywords": [
     "node-red",
     "azure",
-    "iothub"
+    "iothub",
+    "blob-storage"
   ],
   "scripts": {
     "clean": "rm -fr dist",
@@ -21,6 +22,7 @@
     "typescript": "^4.9.4"
   },
   "dependencies": {
+    "@azure/storage-blob": "^12.12.0",
     "azure-iot-common": "^1.13.1",
     "azure-iot-device": "^1.18.1",
     "azure-iot-device-amqp": "^1.14.1",
@@ -34,7 +36,8 @@
   "node-red": {
     "version": ">=3.0.0",
     "nodes": {
-      "Azure IotHub device": "dist/azure-iothub-device.js"
+      "Azure IotHub device": "dist/azure-iothub-device.js",
+      "Azure Blob storage": "dist/azure-blob-storage.js"
     }
   },
   "repository": {
