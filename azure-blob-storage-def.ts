@@ -1,9 +1,6 @@
 import { BlockBlobClient, StoragePipelineOptions } from "@azure/storage-blob";
-import {
-  AzureNodeConfigWithProxy,
-  AzureNodeStateWithProxy,
-} from "./azure-common-defs";
-import { NodeMessageInFlow } from "node-red";
+import { AzureNodeConfigWithProxy, AzureNodeStateWithProxy } from "./azure-common-defs";
+import * as nodered from "node-red";
 
 export interface AzureBlobStorageNodeState extends AzureNodeStateWithProxy {
   client: BlockBlobClient;
