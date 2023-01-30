@@ -1,11 +1,7 @@
 import { Message } from "azure-iot-common";
 import { Client, DeviceClientOptions } from "azure-iot-device";
 import { getProxyUrl, ProxyNode } from "./azure-common-defs";
-import {
-  HttpProxyAgent,
-  HttpsProxyAgent,
-  HttpsProxyAgentOptions,
-} from "hpagent";
+import { HttpProxyAgent, HttpsProxyAgent, HttpsProxyAgentOptions } from "hpagent";
 import { URL } from "url";
 import * as nodered from "node-red";
 
@@ -61,9 +57,7 @@ const getClientOptions = async function (
       return {
         mqtt: {
           ...(Object.keys(proxyConfig).length > 0 && {
-            webSocketAgent: new HttpsProxyAgent(
-              proxyConfig as HttpsProxyAgentOptions
-            ),
+            webSocketAgent: new HttpsProxyAgent(proxyConfig as HttpsProxyAgentOptions),
           }),
         },
       };
@@ -71,9 +65,7 @@ const getClientOptions = async function (
       return {
         amqp: {
           ...(Object.keys(proxyConfig).length > 0 && {
-            webSocketAgent: new HttpsProxyAgent(
-              proxyConfig as HttpsProxyAgentOptions
-            ),
+            webSocketAgent: new HttpsProxyAgent(proxyConfig as HttpsProxyAgentOptions),
           }),
         },
       };
@@ -89,15 +81,21 @@ const setup = async function (this: AzureIotHubDeviceNodeState) {
   this.client.setOptions(await this.getClientOptions());
   this.on("input", async (msg, send, done) => {
     if (msg.payload !== undefined) {
-      if (msg.payload! instanceof String) {
-        await this.sendMessage(msg.payload! as string);
-      } else if (
-        msg.payload instanceof Number ||
-        msg.payload instanceof Boolean
-      ) {
-        await this.sendMessage(`${msg.payload}`);
-      } else {
-        await this.sendMessage(JSON.stringify(msg.payload!));
+      try {
+        if (msg.payload! instanceof String) {
+          await this.sendMessage(msg.payload! as string);
+        } else if (msg.payload instanceof Number || msg.payload instanceof Boolean) {
+          await this.sendMessage(`${msg.payload}`);
+        } else {
+          await this.sendMessage(JSON.stringify(msg.payload!));
+        }
+      } catch (e) {
+        this.error(`Error when sending message.\nPayload: ${msg.payload!}\nError: ${e}`);
+        if (!!send) {
+          send(msg);
+        } else {
+          this.send(msg);
+        }
       }
     }
     if (!!done) {
@@ -110,19 +108,14 @@ const setup = async function (this: AzureIotHubDeviceNodeState) {
       await this.client.close();
       this.log("The connection to the device was closed successfully");
     } catch (e) {
-      this.error(
-        `An error occurred when closing the connection to the device: ${e}`
-      );
+      this.error(`An error occurred when closing the connection to the device: ${e}`);
     } finally {
       done();
     }
   });
 };
 
-const sendMessage = async function (
-  this: AzureIotHubDeviceNodeState,
-  payload: string
-) {
+const sendMessage = async function (this: AzureIotHubDeviceNodeState, payload: string) {
   const message = new Message(payload);
   try {
     await this.client.sendEvent(message);
