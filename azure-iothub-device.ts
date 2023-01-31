@@ -77,10 +77,25 @@ const getClientOptions = async function (
 const setup = async function (this: AzureIotHubDeviceNodeState) {
   const { connectionString } = this.config;
   const Protocol = await this.getProtocolModule();
-  this.client = Client.fromConnectionString(connectionString, Protocol);
-  this.client.setOptions(await this.getClientOptions());
+  this.client = null;
+  try {
+    this.client = Client.fromConnectionString(connectionString, Protocol);
+    this.client.setOptions(await this.getClientOptions());
+    this.status({
+      fill: "green",
+      text: "Connected",
+    });
+  } catch (e) {
+    this.status({
+      fill: "red",
+      text: `Connection failed: ${e}`,
+    });
+  }
   this.on("input", async (msg, send, done) => {
-    if (msg.payload !== undefined) {
+    const _send = send ?? this.send;
+    if (this.client == null) {
+      _send(msg);
+    } else if (msg.payload !== undefined) {
       try {
         if (msg.payload! instanceof String) {
           await this.sendMessage(msg.payload! as string);
@@ -91,11 +106,7 @@ const setup = async function (this: AzureIotHubDeviceNodeState) {
         }
       } catch (e) {
         this.error(`Error when sending message.\nPayload: ${msg.payload!}\nError: ${e}`);
-        if (!!send) {
-          send(msg);
-        } else {
-          this.send(msg);
-        }
+        _send(msg);
       }
     }
     if (!!done) {
@@ -105,7 +116,9 @@ const setup = async function (this: AzureIotHubDeviceNodeState) {
 
   this.on("close", async (done: () => void) => {
     try {
-      await this.client.close();
+      if (!!this.client) {
+        await this.client.close();
+      }
       this.log("The connection to the device was closed successfully");
     } catch (e) {
       this.error(`An error occurred when closing the connection to the device: ${e}`);
