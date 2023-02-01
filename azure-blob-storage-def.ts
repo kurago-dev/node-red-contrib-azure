@@ -9,7 +9,7 @@ export interface AzureBlobStorageNodeState extends AzureNodeStateWithProxy {
   setup: (
     storageAccount: string,
     containerName: string,
-    fileName: string,
+    filename: string,
     sasQueryString: string
   ) => Promise<void>;
   uploadJSON: (
@@ -22,7 +22,7 @@ export interface AzureBlobStorageNodeState extends AzureNodeStateWithProxy {
 export interface AzureBlobStorageConfig extends AzureNodeConfigWithProxy {
   storageAccount: string;
   containerName: string;
-  fileName: string;
+  filename: string;
   sasQueryString: string;
 }
 

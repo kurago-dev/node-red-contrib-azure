@@ -12,10 +12,10 @@ import {
 const getBlobUrl = async (
   storageAccount: string,
   containerName: string,
-  fileName: string,
+  filename: string,
   sasQueryString: string
 ): Promise<string> => {
-  return `https://${storageAccount}.blob.core.windows.net/${containerName}/${fileName}${sasQueryString}`;
+  return `https://${storageAccount}.blob.core.windows.net/${containerName}/${filename}${sasQueryString}`;
 };
 
 const getProxyOptions = (
@@ -31,7 +31,7 @@ const getProxyOptions = (
 };
 
 const setup = async function (this: AzureBlobStorageNodeState) {
-  const { storageAccount, containerName, fileName, sasQueryString } = this.config;
+  const { storageAccount, containerName, filename, sasQueryString } = this.config;
 
   const clientOptions = getProxyOptions(this.config, this.proxy);
 
@@ -41,8 +41,8 @@ const setup = async function (this: AzureBlobStorageNodeState) {
       let blobFileName: string;
       if (!!msg.filename) {
         blobFileName = msg.filename;
-      } else if (!!fileName && fileName != "") {
-        blobFileName = fileName;
+      } else if (!!filename && filename != "") {
+        blobFileName = filename;
       } else {
         blobFileName = `${new Date().toISOString()}.json`;
       }
@@ -102,8 +102,8 @@ module.exports = (RED: nodered.NodeAPI): void => {
     this.setup = setup;
     this.uploadJSON = uploadJSON;
 
-    const { storageAccount, containerName, fileName, sasQueryString } = config;
-    this.setup(storageAccount, containerName, fileName, sasQueryString);
+    const { storageAccount, containerName, filename, sasQueryString } = config;
+    this.setup(storageAccount, containerName, filename, sasQueryString);
   };
   RED.nodes.registerType("Azure Blob storage", AzureBlobStorage);
 };
