@@ -55,8 +55,8 @@ const setup = async function (this: AzureBlobStorageNodeState) {
         });
       }
     } catch (e) {
-      _send(msg);
       this.error(`An error occurred while uploading to Blob Storage: ${e}`);
+      _send(msg);
       this.status({
         fill: "red",
         text: `Error: ${e}`,
