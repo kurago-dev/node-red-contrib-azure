@@ -56,6 +56,7 @@ const setup = async function (this: AzureBlobStorageNodeState) {
       }
     } catch (e) {
       _send(msg);
+      this.error(`An error occurred while uploading to Blob Storage: ${e}`);
       this.status({
         fill: "red",
         text: `Error: ${e}`,
@@ -74,13 +75,8 @@ const uploadJSON = async function (
   clientOptions: StoragePipelineOptions | {}
 ) {
   var client = new BlockBlobClient(blobUrl, new AnonymousCredential(), clientOptions);
-  try {
-    await client.upload(payload, payload.length);
-    this.log(`JSON sent successfully with payload size: ${payload.length}`);
-  } catch (e) {
-    this.error(`An error occurred while uploading to Blob Storage: ${e}`);
-    throw e;
-  }
+  await client.upload(payload, payload.length);
+  this.log(`JSON sent successfully with payload size: ${payload.length}`);
 };
 
 module.exports = (RED: nodered.NodeAPI): void => {
