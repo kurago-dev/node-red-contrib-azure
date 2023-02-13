@@ -130,12 +130,8 @@ const setup = async function (this: AzureIotHubDeviceNodeState) {
 
 const sendMessage = async function (this: AzureIotHubDeviceNodeState, payload: string) {
   const message = new Message(payload);
-  try {
-    await this.client.sendEvent(message);
-    this.log(`Message sent successfully with payload: ${payload}`);
-  } catch (e) {
-    this.error(`An error occurred when sending a message: ${e}`);
-  }
+  await this.client.sendEvent(message);
+  this.log(`Message sent successfully with payload: ${payload}`);
 };
 
 module.exports = (RED: nodered.NodeAPI): void => {
