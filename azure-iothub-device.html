@@ -17,13 +17,28 @@
             proxy: {
                 type: "http proxy",
                 required: false
+            },
+            name: {
+                value: "",
+                required: false
             }
         },
         inputs: 1,
         outputs: 1,
         align: "right",
         icon: "iot-hub.png",
-        label: "Azure IotHub device",
+        label: function () {
+            if (!!this.name && this.name !== "") {
+                return this.name;
+            } else if (!!this.connectionString && this.connectionString !== "") {
+                const props = Object.fromEntries(
+                    this.connectionString.split(";").map(s => [s.split("=")[0], s.split("=").slice(1).join("=")])
+                );
+                return props.DeviceId || "Azure IotHub device";
+            } else {
+                return "Azure IotHub device";
+            }
+        },
         oneditprepare: function () {
             $("#node-input-protocol").typedInput({
                 types: [{
@@ -60,6 +75,10 @@
 </script>
 
 <script type="text/html" data-template-name="Azure IotHub device">
+    <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+        <input type="text" id="node-input-name" placeholder="Name">
+    </div>
     <div class="form-row">
         <label for="node-input-connectionString"><i class="fa fa-plug"></i> Connection string</label>
         <input type="password" id="node-input-connectionString" />
