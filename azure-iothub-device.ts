@@ -1,7 +1,7 @@
-import { Message } from "azure-iot-common";
+import { Message, NoRetry } from "azure-iot-common";
 import { Client, DeviceClientOptions } from "azure-iot-device";
 import { getProxyUrl, ProxyNode } from "./azure-common-defs";
-import { HttpProxyAgent, HttpsProxyAgent, HttpsProxyAgentOptions } from "hpagent";
+import { HttpsProxyAgent, HttpsProxyAgentOptions } from "hpagent";
 import { URL } from "url";
 import * as nodered from "node-red";
 
@@ -10,7 +10,6 @@ import {
   AzureIotHubDeviceConfig,
   ProtocolModule,
 } from "./azure-iothub-device-def";
-import { type } from "os";
 
 const getProtocolModule = async function (
   this: AzureIotHubDeviceNodeState
@@ -74,6 +73,18 @@ const getClientOptions = async function (
   }
 };
 
+const onIotHubClientConnected = () => {
+  console.log("UNAI", "CLIENT CONNECTED");
+}
+
+const onIotHubClientError = (err: any) => {
+  console.log("UNAI", "CLIENT ERROR", err);
+}
+
+const onIotHubClientDisconnect = () => {
+  console.log("UNAI", "CLIENT DISCONNECT");
+}
+
 const setup = async function (this: AzureIotHubDeviceNodeState) {
   const { connectionString } = this.config;
   const Protocol = await this.getProtocolModule();
@@ -85,6 +96,10 @@ const setup = async function (this: AzureIotHubDeviceNodeState) {
       fill: "green",
       text: "Connected",
     });
+    this.client.setRetryPolicy(new NoRetry());
+    this.client._transport.on("connected", onIotHubClientConnected);
+    this.client._transport.on("error", onIotHubClientError);
+    this.client._transport.on("disconnect", onIotHubClientDisconnect);
   } catch (e) {
     this.status({
       fill: "red",
@@ -97,6 +112,11 @@ const setup = async function (this: AzureIotHubDeviceNodeState) {
       _send(msg);
     } else if (msg.payload !== undefined) {
       try {
+        this.status({
+          fill: "green",
+          shape: "ring",
+          text: "Sending message..."
+        });
         if (msg.payload! instanceof String) {
           await this.sendMessage(msg.payload! as string);
         } else if (msg.payload instanceof Number || msg.payload instanceof Boolean) {
@@ -104,8 +124,16 @@ const setup = async function (this: AzureIotHubDeviceNodeState) {
         } else {
           await this.sendMessage(JSON.stringify(msg.payload!));
         }
+        this.status({
+          fill: "green",
+          text: "OK"
+        })
       } catch (e) {
         this.error(`Error when sending message.\nPayload: ${msg.payload!}\nError: ${e}`);
+        this.status({
+          fill: "red",
+          text: e
+        })
         _send(msg);
       }
     }
