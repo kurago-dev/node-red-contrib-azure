@@ -1,8 +1,5 @@
 import { Client, DeviceClientOptions } from "azure-iot-device";
-import {
-  AzureNodeConfigWithProxy,
-  AzureNodeStateWithProxy,
-} from "./azure-common-defs";
+import { AzureNodeConfigWithProxy, AzureNodeStateWithProxy } from "./azure-common-defs";
 
 export type Protocol = "mqtt" | "mqtt-ws" | "amqp" | "amqp-ws";
 
@@ -14,8 +11,11 @@ export type ProtocolModule = Mqtt | Amqp;
 export interface AzureIotHubDeviceNodeState extends AzureNodeStateWithProxy {
   client: Client;
   config: AzureIotHubDeviceConfig;
+  isReconnecting: boolean;
 
   setup: () => Promise<void>;
+  setupClient: () => Promise<Client>;
+  reconnect: () => Promise<void>;
   getProtocolModule: () => Promise<ProtocolModule>;
   getClientOptions: () => Promise<DeviceClientOptions>;
   sendMessage: (payload: string) => Promise<void>;
