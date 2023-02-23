@@ -27,7 +27,8 @@
     "azure-iot-device": "^1.18.1",
     "azure-iot-device-amqp": "^1.14.1",
     "azure-iot-device-mqtt": "^1.16.1",
-    "hpagent": "^1.2.0"
+    "hpagent": "^1.2.0",
+    "node-fetch": "^2.6.7"
   },
   "engines": {
     "node": ">=16.0.0 <17.0.0",

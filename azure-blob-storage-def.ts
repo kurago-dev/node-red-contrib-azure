@@ -3,8 +3,8 @@ import { AzureNodeConfigWithProxy, AzureNodeStateWithProxy } from "./azure-commo
 import * as nodered from "node-red";
 
 export interface AzureBlobStorageNodeState extends AzureNodeStateWithProxy {
-  client: BlockBlobClient;
   config: AzureBlobStorageConfig;
+  isReconnecting: boolean;
 
   setup: (
     storageAccount: string,
@@ -12,11 +12,8 @@ export interface AzureBlobStorageNodeState extends AzureNodeStateWithProxy {
     filename: string,
     sasQueryString: string
   ) => Promise<void>;
-  uploadJSON: (
-    filename: string,
-    payload: string,
-    clientOptions: StoragePipelineOptions
-  ) => Promise<void>;
+  uploadJSON: (filename: string, payload: string) => Promise<void>;
+  reconnect: () => Promise<void>;
 }
 
 export interface AzureBlobStorageConfig extends AzureNodeConfigWithProxy {
