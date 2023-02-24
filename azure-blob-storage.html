@@ -39,11 +39,12 @@
                 if ($("#node-input-useProxy").is(":checked")) {
                     $("#node-input-useProxy-row").show();
                 } else {
+                    $("#node-input-proxy").val(undefined);
                     $("#node-input-useProxy-row").hide();
                 }
                 RED.tray.resize();
             }
-            if (this.proxy) {
+            if (this.useProxy) {
                 $("#node-input-useProxy").prop("checked", true);
             } else {
                 $("#node-input-useProxy").prop("checked", false);
