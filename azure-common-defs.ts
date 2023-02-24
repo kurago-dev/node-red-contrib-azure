@@ -20,11 +20,8 @@ export interface AzureNodeConfigWithProxy extends nodered.NodeDef {
   proxy: string;
 }
 
-export const getProxyUrl = (
-  config: AzureNodeConfigWithProxy,
-  proxy?: ProxyNode
-): URL | {} => {
-  if (!config.useProxy) {
+export const getProxyUrl = (config: AzureNodeConfigWithProxy, proxy?: ProxyNode): URL | {} => {
+  if (!config.useProxy || !proxy.url) {
     return {};
   }
   const proxyUrl = new URL(proxy.url);
