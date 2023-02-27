@@ -25,3 +25,11 @@ export interface AzureIotHubDeviceConfig extends AzureNodeConfigWithProxy {
   connectionString: string;
   protocol: Protocol;
 }
+
+export class MalformedConnectionStringError extends Error {
+  public name = "MalformedConnectionStringError";
+
+  constructor() {
+    super("Connection string is malformed");
+  }
+}

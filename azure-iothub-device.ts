@@ -10,6 +10,7 @@ import {
   AzureIotHubDeviceNodeState,
   AzureIotHubDeviceConfig,
   ProtocolModule,
+  MalformedConnectionStringError,
 } from "./azure-iothub-device-def";
 
 const getProtocolModule = async function (
@@ -99,8 +100,28 @@ const reconnect = async function (this: AzureIotHubDeviceNodeState) {
   }
 };
 
+const validateConnectionString = (cs: string): void | never => {
+  const configurationSplit = cs.split(";");
+  const requiredValueRegistry = {
+    HostName: false,
+    DeviceId: false,
+    SharedAccessKey: false,
+  };
+  for (const configurationEntry of configurationSplit) {
+    const entrySplit = configurationEntry.split("=");
+    const name = entrySplit[0];
+    if (name in requiredValueRegistry) {
+      requiredValueRegistry[name] = true;
+    }
+  }
+  if (Object.values(requiredValueRegistry).some((v) => v === false)) {
+    throw new MalformedConnectionStringError();
+  }
+};
+
 const setupClient = async function (this: AzureIotHubDeviceNodeState): Promise<Client> {
   const { connectionString } = this.config;
+  validateConnectionString(connectionString);
   const Protocol = await this.getProtocolModule();
   const client = Client.fromConnectionString(connectionString, Protocol);
   const clientOptions = await this.getClientOptions();
@@ -170,7 +191,20 @@ const setup = async function (this: AzureIotHubDeviceNodeState) {
 
   this.setupClient()
     .then((client) => (this.client = client))
-    .catch(() => this.reconnect());
+    .catch((err) => {
+      if (err.name == "MalformedConnectionStringError") {
+        this.client = null;
+        this.error(
+          "The connection string is malformed. This error is non-recoverable and needs manual input."
+        );
+        this.status({
+          fill: "red",
+          text: err,
+        });
+      } else {
+        this.reconnect();
+      }
+    });
 };
 
 const sendMessage = async function (this: AzureIotHubDeviceNodeState, payload: string) {
