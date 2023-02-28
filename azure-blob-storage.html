@@ -32,7 +32,13 @@
         outputs: 1,
         align: "right",
         icon: "blob-storage.png",
-        label: "Azure Blob storage",
+        label: function () {
+            if (!!this.storageAccount && !!this.containerName) {
+                return `${this.storageAccount} (${this.containerName})`;
+            } else {
+                return "Azure Blob storage";
+            }
+        },
         oneditprepare: function () {
             // Proxies
             function updateProxyOptions() {

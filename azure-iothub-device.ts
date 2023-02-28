@@ -1,16 +1,17 @@
-import { Message } from "azure-iot-common";
+import { Message, NoRetry } from "azure-iot-common";
 import { Client, DeviceClientOptions } from "azure-iot-device";
 import { getProxyUrl, ProxyNode } from "./azure-common-defs";
-import { HttpProxyAgent, HttpsProxyAgent, HttpsProxyAgentOptions } from "hpagent";
+import { HttpsProxyAgent, HttpsProxyAgentOptions } from "hpagent";
 import { URL } from "url";
 import * as nodered from "node-red";
+import { Agent } from "https";
 
 import {
   AzureIotHubDeviceNodeState,
   AzureIotHubDeviceConfig,
   ProtocolModule,
+  MalformedConnectionStringError,
 } from "./azure-iothub-device-def";
-import { type } from "os";
 
 const getProtocolModule = async function (
   this: AzureIotHubDeviceNodeState
@@ -33,70 +34,123 @@ const getProtocolModule = async function (
   }
 };
 
-const getProxyOptions = (
-  config: AzureIotHubDeviceConfig,
-  proxy?: ProxyNode
-): HttpsProxyAgentOptions | {} => {
+const getProxyOptions = (proxyUrl: URL): HttpsProxyAgentOptions => {
+  return {
+    proxy: proxyUrl,
+    maxFreeSockets: 256,
+    maxSockets: 256,
+    keepAlive: true,
+  };
+};
+
+const getAgent = (config: AzureIotHubDeviceConfig, proxy?: ProxyNode): Agent => {
   const proxyUrl = getProxyUrl(config, proxy);
-  return proxyUrl instanceof URL
-    ? {
-        proxy: proxyUrl,
-        maxFreeSockets: 256,
-        maxSockets: 256,
-        keepAlive: true,
-      }
-    : {};
+  if (proxyUrl instanceof URL) {
+    const proxyConfig = getProxyOptions(proxyUrl);
+    return new HttpsProxyAgent({
+      ...proxyConfig,
+    });
+  } else {
+    return new Agent();
+  }
 };
 
 const getClientOptions = async function (
   this: AzureIotHubDeviceNodeState
 ): Promise<DeviceClientOptions> {
-  const proxyConfig = getProxyOptions(this.config, this.proxy);
+  const webSocketAgent = getAgent(this.config, this.proxy);
+  const keepalive = 10;
   switch (this.config.protocol) {
     case "mqtt-ws":
       return {
         mqtt: {
-          ...(Object.keys(proxyConfig).length > 0 && {
-            webSocketAgent: new HttpsProxyAgent(proxyConfig as HttpsProxyAgentOptions),
-          }),
+          webSocketAgent,
         },
+        keepalive,
       };
     case "amqp-ws":
       return {
         amqp: {
-          ...(Object.keys(proxyConfig).length > 0 && {
-            webSocketAgent: new HttpsProxyAgent(proxyConfig as HttpsProxyAgentOptions),
-          }),
+          webSocketAgent,
         },
+        keepalive,
       };
     default:
       return {};
   }
 };
 
-const setup = async function (this: AzureIotHubDeviceNodeState) {
-  const { connectionString } = this.config;
-  const Protocol = await this.getProtocolModule();
-  this.client = null;
-  try {
-    this.client = Client.fromConnectionString(connectionString, Protocol);
-    this.client.setOptions(await this.getClientOptions());
-    this.status({
-      fill: "green",
-      text: "Connected",
-    });
-  } catch (e) {
-    this.status({
-      fill: "red",
-      text: `Connection failed: ${e}`,
-    });
+const reconnect = async function (this: AzureIotHubDeviceNodeState) {
+  this.isReconnecting = true;
+  this.status({
+    fill: "yellow",
+    text: "Reconnecting",
+  });
+  this.client?.close(); // We don't wanna await this bc timeout also doesn't work on here
+  while (this.isReconnecting) {
+    try {
+      this.client = await this.setupClient();
+      this.isReconnecting = false;
+    } catch (e) {
+      this.log("Reconnection attempt failed. Attempting new reconnection in 5 seconds.");
+      this.log(e);
+      await new Promise((resolve) => setTimeout(resolve, 5000));
+      this.log("Attempting new reconnection.");
+    }
   }
+};
+
+const validateConnectionString = (cs: string): void | never => {
+  const configurationSplit = cs.split(";");
+  const requiredValueRegistry = {
+    HostName: false,
+    DeviceId: false,
+    SharedAccessKey: false,
+  };
+  for (const configurationEntry of configurationSplit) {
+    const entrySplit = configurationEntry.split("=");
+    const name = entrySplit[0];
+    if (name in requiredValueRegistry) {
+      requiredValueRegistry[name] = true;
+    }
+  }
+  if (Object.values(requiredValueRegistry).some((v) => v === false)) {
+    throw new MalformedConnectionStringError();
+  }
+};
+
+const setupClient = async function (this: AzureIotHubDeviceNodeState): Promise<Client> {
+  const { connectionString } = this.config;
+  validateConnectionString(connectionString);
+  const Protocol = await this.getProtocolModule();
+  const client = Client.fromConnectionString(connectionString, Protocol);
+  const clientOptions = await this.getClientOptions();
+  client.setOptions(clientOptions);
+  client.setRetryPolicy(new NoRetry());
+  client.on("disconnect", () => {
+    this.reconnect();
+  });
+  await client.open();
+  this.isReconnecting = false;
+  this.status({
+    fill: "green",
+    text: "Connected",
+  });
+  return client;
+};
+
+const setup = async function (this: AzureIotHubDeviceNodeState) {
   this.on("input", async (msg, send, done) => {
     const _send = send ?? this.send;
-    if (this.client == null) {
+    if (this.client == null || this.isReconnecting) {
       _send(msg);
     } else if (msg.payload !== undefined) {
       try {
+        this.status({
+          fill: "green",
+          shape: "ring",
+          text: "Sending message...",
+        });
         if (msg.payload! instanceof String) {
           await this.sendMessage(msg.payload! as string);
         } else if (msg.payload instanceof Number || msg.payload instanceof Boolean) {
@@ -104,8 +158,18 @@ const setup = async function (this: AzureIotHubDeviceNodeState) {
         } else {
           await this.sendMessage(JSON.stringify(msg.payload!));
         }
+        this.status({
+          fill: "green",
+          text: "Connected",
+        });
       } catch (e) {
         this.error(`Error when sending message.\nPayload: ${msg.payload!}\nError: ${e}`);
+        if (!this.isReconnecting) {
+          this.status({
+            fill: "red",
+            text: e,
+          });
+        }
         _send(msg);
       }
     }
@@ -116,9 +180,7 @@ const setup = async function (this: AzureIotHubDeviceNodeState) {
 
   this.on("close", async (done: () => void) => {
     try {
-      if (!!this.client) {
-        await this.client.close();
-      }
+      await this.client?.close();
       this.log("The connection to the device was closed successfully");
     } catch (e) {
       this.error(`An error occurred when closing the connection to the device: ${e}`);
@@ -126,6 +188,23 @@ const setup = async function (this: AzureIotHubDeviceNodeState) {
       done();
     }
   });
+
+  this.setupClient()
+    .then((client) => (this.client = client))
+    .catch((err) => {
+      if (err.name == "MalformedConnectionStringError") {
+        this.client = null;
+        this.error(
+          "The connection string is malformed. This error is non-recoverable and needs manual input."
+        );
+        this.status({
+          fill: "red",
+          text: err,
+        });
+      } else {
+        this.reconnect();
+      }
+    });
 };
 
 const sendMessage = async function (this: AzureIotHubDeviceNodeState, payload: string) {
@@ -144,13 +223,17 @@ module.exports = (RED: nodered.NodeAPI): void => {
     if (config.useProxy) {
       this.proxy = RED.nodes.getNode(config.proxy) as ProxyNode;
     }
+    this.isReconnecting = false;
 
     this.getProtocolModule = getProtocolModule;
     this.getClientOptions = getClientOptions;
     this.sendMessage = sendMessage;
 
     this.setup = setup;
+    this.setupClient = setupClient;
+    this.reconnect = reconnect;
 
+    this.client = null;
     this.setup();
   };
   RED.nodes.registerType("Azure IotHub device", AzureIotHubDevice);
