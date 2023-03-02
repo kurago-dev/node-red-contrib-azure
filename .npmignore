@@ -1,0 +1,4 @@
+node_modules/
+docker-compose.yml
+entrypoint.sh
+Dockerfile
